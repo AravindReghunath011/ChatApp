@@ -1,11 +1,61 @@
+*{
+    padding: 0%;
+    margin: 0%;
+}
 #videos{
     display: grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:2fr 2fr;
     gap:2em;
+
+}
+#container{
+    height: 100vh;
+    background-color: black;
 }
 
 .video-player{
+    margin-top: 2rem;
     background-color: black;
     width: 100%;
-    height: 300px;
+    height:400px;
 }
+#user-2{
+    display: none;
+}
+
+#controller-container{
+    display: flex;
+    height: 2rem;
+    width: 100%;
+    justify-content: center;
+    position: absolute;
+    bottom: 10%;
+
+
+}
+
+.controllers{
+    background-color:lightgrey;
+    height: 5rem;
+    width: 5rem;
+    margin-left: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+}
+#mic-btn img{
+    
+   height:3rem ; 
+   
+}
+
+#cam-btn img{
+    height:3rem ; 
+   
+}
+#callEnd-btn img{
+    height: 3rem;
+}
+

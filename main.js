@@ -9,6 +9,14 @@ let uid = String(Math.floor(Math.random() *1000))
 let client;
 let channel; 
 
+let queryString = window.location.search
+let params = new URLSearchParams(queryString)
+let roomID = params.get('roomId')
+
+if(!roomID){
+    window.location = 'lobby.html'
+}
+
 const servers = {
     iceServers:[
         {
@@ -22,6 +30,8 @@ let createPeerConnection = async(MemberId)=>{
 
     remoteStream = new MediaStream()
     document.getElementById('user-2').srcObject = remoteStream
+    document.getElementById('user-2').style.display = 'block';
+
 
     if(!localStream){
     localStream = await navigator.mediaDevices.getUserMedia({video:true,audio:false})
@@ -49,10 +59,12 @@ let init = async()=>{
     client = await AgoraRTM.createInstance(APP_ID)
     await client.login({uid,token})
 
-    channel = client.createChannel('main')
+    channel = client.createChannel(roomID)
     await channel.join()
 
     channel.on('MemberJoined' , handleUserJoined)
+
+    channel.on('MemberLeft', handleUserLeft)
 
     client.on('MessageFromPeer',handleMessageFromPeer)
 
@@ -86,6 +98,10 @@ let handleMessageFromPeer =async (message,MemberId) =>{
 }
 init()
 
+let handleUserLeft = (MemberId)=>{
+    document.getElementById('user-2').style.display = 'none'
+}
+
 let handleUserJoined = async(MemberId)=>{
     console.log( 'A new member joined' ,MemberId );
     createOffer(MemberId)
@@ -98,6 +114,7 @@ let createOffer = async(MemberId)=> {
     let offer = await peerConnection.createOffer()
     await peerConnection.setLocalDescription(offer)
     client.sendMessageToPeer({text:JSON.stringify({'type' : 'offer','offer':offer})},MemberId)
+    console.log('offer',offer)
         
     
 }
@@ -119,3 +136,24 @@ let addAnswer = async(answer)=>{
         peerConnection.setRemoteDescription(answer)
     }
 }
+
+let leaveChannel = async() =>{
+    await channel.leave()
+    await client.logout()
+}
+
+let toggleCamera = async()=>{
+    let video = localStream.getTracks().find(track=>track.kind === 'video')
+    if(video.enabled){
+        video.enabled = false
+        document.getElementById('cam-btn').style.backgroundColor = 'rgba(246, 2, 2, 0.795)'
+    }else{
+        video.enabled = true
+        document.getElementById('cam-btn').style.backgroundColor = 'lightgrey'
+
+
+    }
+}
+document.getElementById('cam-btn').addEventListener('click', toggleCamera)
+
+window.addEventListener('beforeunload', leaveChannel)
