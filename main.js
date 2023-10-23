@@ -44,6 +44,7 @@ let createPeerConnection = async(MemberId)=>{
 
     peerConnection.ontrack = (event)=>{
         event.streams[0].getTracks().forEach((track)=>{
+            console.log('track',track)
             remoteStream.addTrack(track)
         })
     }
@@ -77,26 +78,27 @@ let handleMessageFromPeer =async (message,MemberId) =>{
     
     if(message.type == 'offer'){
         createAnswer(MemberId,message.offer)
-    console.log(message,'message',message.offer)
+    console.log('offer',message.offer)
 
     }
 
     if(message.type == 'answer'){
         addAnswer(message.answer)
-    console.log(message,'message',message.answer)
+    console.log('answer',message.answer)
 
     }
     
     if(message.type == 'candidate'){
         if(peerConnection){
+            console.log('candidate',message.candidate);
             peerConnection.addIceCandidate(message.candidate)
-    console.log(message,'message',message.candidate)
+    console.log('candidate',message.candidate)
 
         }
     }
 
 }
-init()
+
 
 let handleUserLeft = (MemberId)=>{
     document.getElementById('user-2').style.display = 'none'
@@ -120,6 +122,7 @@ let createOffer = async(MemberId)=> {
 }
 
 let createAnswer = async(MemberId,offer)=>{
+
     await createPeerConnection(MemberId)
     await peerConnection.setRemoteDescription(offer)
     let answer = await peerConnection.createAnswer()
@@ -138,6 +141,7 @@ let addAnswer = async(answer)=>{
 }
 
 let leaveChannel = async() =>{
+    alert('left')
     await channel.leave()
     await client.logout()
 }
@@ -155,5 +159,8 @@ let toggleCamera = async()=>{
     }
 }
 document.getElementById('cam-btn').addEventListener('click', toggleCamera)
+document.getElementById('callEnd-btn').addEventListener('click', leaveChannel)
 
 window.addEventListener('beforeunload', leaveChannel)
+
+init()
