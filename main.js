@@ -8,6 +8,7 @@ let uid = String(Math.floor(Math.random() *1000))
 
 let client;
 let channel; 
+let isRemoteAdded;
 
 let queryString = window.location.search
 let params = new URLSearchParams(queryString)
@@ -25,35 +26,34 @@ const servers = {
     ]
 }
 
-let createPeerConnection = async(MemberId)=>{
-    peerConnection = new RTCPeerConnection(servers)
+async function createPeerConnection(MemberId) {
+    peerConnection = new RTCPeerConnection(servers);
 
-    remoteStream = new MediaStream()
-    document.getElementById('user-2').srcObject = remoteStream
+    remoteStream = new MediaStream();
+    document.getElementById('user-2').srcObject = remoteStream;
     document.getElementById('user-2').style.display = 'block';
 
-
-    if(!localStream){
-    localStream = await navigator.mediaDevices.getUserMedia({video:true,audio:false})
-    document.getElementById('user-1').srcObject  = localStream;
+    if (!localStream) {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        document.getElementById('user-1').srcObject = localStream;
     }
 
-    localStream.getTracks().forEach((track)=>{
-        peerConnection.addTrack(track,localStream)
-    })
+    localStream.getTracks().forEach((track) => {
+        peerConnection.addTrack(track, localStream);
+    });
 
-    peerConnection.ontrack = (event)=>{
-        event.streams[0].getTracks().forEach((track)=>{
-            console.log('track',track)
-            remoteStream.addTrack(track)
-        })
-    }
+    peerConnection.ontrack = (event) => {
+        remoteStream = event.streams[0];
+        document.getElementById('user-2').srcObject = remoteStream;
+    };
 
-    peerConnection.onicecandidate = async (event) =>{
-        if(event.candidate){
-            client.sendMessageToPeer({text:JSON.stringify({'type' : 'candidate','candidate':event.candidate })},MemberId)
+    peerConnection.onicecandidate = async (event) => {
+        if (event.candidate) {
+            client.sendMessageToPeer({
+                text: JSON.stringify({ 'type': 'candidate', 'candidate': event.candidate }),
+            }, MemberId);
         }
-    }
+    };
 }
 
 let init = async()=>{
@@ -90,14 +90,34 @@ let handleMessageFromPeer =async (message,MemberId) =>{
     }
     
     if(message.type == 'candidate'){
-        if(peerConnection){
-            console.log('candidate',message.candidate);
-            peerConnection.addIceCandidate(message.candidate)
-    console.log('candidate',message.candidate)
-
+        try {
+            handleReceivedIceCandidate(message.candidate)
+            
+        } catch (error) {
+            console.log(error);
+            
         }
+    
+
+      
     }
 
+}
+
+async function handleReceivedIceCandidate(candidate) {
+    if (peerConnection.remoteDescription) {
+        try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+           
+        } catch (error) {
+            console.error('Error adding ICE candidate:', error);
+        }
+    } else {
+        console.log('waiting for connection')
+            setTimeout(() => {
+                handleReceivedIceCandidate(candidate); 
+              }, 1000); 
+    }
 }
 
 
@@ -106,7 +126,7 @@ let handleUserLeft = (MemberId)=>{
 }
 
 let handleUserJoined = async(MemberId)=>{
-    console.log( 'A new member joined' ,MemberId );
+   
     createOffer(MemberId)
 }
 
@@ -117,30 +137,36 @@ let createOffer = async(MemberId)=> {
     let offer = await peerConnection.createOffer()
     await peerConnection.setLocalDescription(offer)
     client.sendMessageToPeer({text:JSON.stringify({'type' : 'offer','offer':offer})},MemberId)
-    console.log('offer',offer)
+   
         
     
 }
 
-let createAnswer = async(MemberId,offer)=>{
-    console.log('somthing',offer)
-    await createPeerConnection(MemberId)
-    await peerConnection.setRemoteDescription(offer)
-    let answer = await peerConnection.createAnswer()
-    await peerConnection.setLocalDescription(answer)
-    console.log('create Answer',answer)
+async function createAnswer(MemberId, offer) {
+   
+    await createPeerConnection(MemberId);
 
-    client.sendMessageToPeer({text:JSON.stringify({'type' : 'answer','answer':answer})},MemberId)
+    try {
+        await peerConnection.setRemoteDescription(offer);
+        
 
-    
-}
+        let answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
 
-let addAnswer = async(answer)=>{
-    if(!peerConnection.currentRemoteDescription){
-        console.log(answer,'remote')
-        peerConnection.setRemoteDescription(answer)
-    }else{
-        console.log('error in addAnswer')
+        client.sendMessageToPeer({
+            text: JSON.stringify({ 'type': 'answer', 'answer': answer }),
+        }, MemberId);
+    } catch (error) {
+        console.error('Error setting remote description or creating answer:', error);
+    }
+}   
+
+async function addAnswer(answer) {
+    try {
+        await peerConnection.setRemoteDescription(answer);
+       
+    } catch (error) {
+        console.error('Error setting remote description:', error);
     }
 }
 
