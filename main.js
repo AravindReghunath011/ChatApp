@@ -81,8 +81,9 @@ let handleMessageFromPeer =async (message,MemberId) =>{
     console.log('offer',message.offer)
 
     }
-
+ 
     if(message.type == 'answer'){
+        console.log('entered answer');
         addAnswer(message.answer)
     console.log('answer',message.answer)
 
@@ -122,11 +123,12 @@ let createOffer = async(MemberId)=> {
 }
 
 let createAnswer = async(MemberId,offer)=>{
-
+    console.log('somthing',offer)
     await createPeerConnection(MemberId)
     await peerConnection.setRemoteDescription(offer)
     let answer = await peerConnection.createAnswer()
     await peerConnection.setLocalDescription(answer)
+    console.log('create Answer',answer)
 
     client.sendMessageToPeer({text:JSON.stringify({'type' : 'answer','answer':answer})},MemberId)
 
@@ -137,6 +139,8 @@ let addAnswer = async(answer)=>{
     if(!peerConnection.currentRemoteDescription){
         console.log(answer,'remote')
         peerConnection.setRemoteDescription(answer)
+    }else{
+        console.log('error in addAnswer')
     }
 }
 
